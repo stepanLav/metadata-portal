@@ -15,7 +15,8 @@ use crate::cleaner::clean;
 use crate::collector::collect;
 use crate::config::read_app_config;
 use crate::signer::sign;
-use crate::updater::update;
+use crate::updater::source::UpdateSource;
+use crate::updater::{update_from_github, update_from_node};
 use crate::verifier::validate_signed_qrs;
 use opts::*;
 
@@ -32,7 +33,10 @@ fn main() -> color_eyre::Result<()> {
         SubCommand::Collect => collect(config),
         SubCommand::Sign => sign(config),
         SubCommand::Verify => validate_signed_qrs(&config.qr_dir, &config.verifier.public_key),
-        SubCommand::Update => update(config),
+        SubCommand::Update(update_opts) => match update_opts.source {
+            UpdateSource::Github => update_from_github(config),
+            UpdateSource::Node => update_from_node(config),
+        },
     };
     match result {
         Ok(_) => {

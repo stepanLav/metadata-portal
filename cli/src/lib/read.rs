@@ -1,16 +1,14 @@
 use crate::lib::path::{ContentType, QrPath};
+use crate::lib::types::{ChainName, SpecVersion};
 use std::collections::HashMap;
 use std::convert::TryFrom;
 use std::fs;
 use std::path::Path;
 
-type ChainName = String;
-type Version = u32;
-
 pub fn metadata_qr_in_dir(
     dir: impl AsRef<Path>,
-) -> anyhow::Result<HashMap<ChainName, (QrPath, Version)>> {
-    let mut latest_qrs: HashMap<ChainName, (QrPath, Version)> = HashMap::new();
+) -> anyhow::Result<HashMap<ChainName, (QrPath, SpecVersion)>> {
+    let mut latest_qrs: HashMap<ChainName, (QrPath, SpecVersion)> = HashMap::new();
 
     for qr_path in raw_read_qr_dir(dir)? {
         let current = &qr_path.file_name;

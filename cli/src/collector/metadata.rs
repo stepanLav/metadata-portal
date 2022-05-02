@@ -1,6 +1,6 @@
 use crate::collector::export::{ChainSpecs, MetaSpecs};
 use anyhow::{anyhow, bail};
-use definitions::error::IncomingMetadataSourceActiveStr;
+use definitions::error_active::IncomingMetadataSourceActiveStr;
 use definitions::metadata::MetaValues;
 use generate_message::fetch_metadata::fetch_info_with_network_specs;
 use generate_message::interpret_specs::interpret_properties;

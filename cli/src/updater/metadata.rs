@@ -4,7 +4,7 @@ use crate::updater::export::MetaSpecs;
 use anyhow::{anyhow, bail};
 use constants::{COLOR, SECONDARY_COLOR};
 use definitions::crypto::Encryption;
-use definitions::error::IncomingMetadataSourceActiveStr;
+use definitions::error_active::IncomingMetadataSourceActiveStr;
 use definitions::metadata::MetaValues;
 use definitions::network_specs::NetworkSpecsToSend;
 use generate_message::fetch_metadata::fetch_info_with_network_specs;

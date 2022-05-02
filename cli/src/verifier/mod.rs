@@ -4,7 +4,8 @@ use std::path::Path;
 use crate::lib::camera::read_qr_file;
 use crate::lib::path::{ContentType, QrFileName, QrPath};
 use crate::lib::read::{all_qrs_in_dir, metadata_qr_in_dir};
-use definitions::error::{Signer, TransferContent};
+use definitions::error::TransferContent;
+use definitions::error_signer::Signer;
 use definitions::helpers::multisigner_to_public;
 use definitions::metadata::MetaValues;
 use definitions::network_specs::{Verifier, VerifierValue};
@@ -44,10 +45,10 @@ fn validate_metadata_qr(qr_path: &QrPath, public_key: &str) -> anyhow::Result<()
 
     verify_signature(&signed.verifier, public_key)?;
 
-    let (meta, _) = ContentLoadMeta::from_vec(&signed.message)
+    let (meta, _) = ContentLoadMeta::from_slice(&signed.message)
         .meta_genhash::<Signer>()
         .map_err(|e| anyhow!("{:?}", e))?;
-    let meta_values = MetaValues::from_vec_metadata(&meta).map_err(|e| anyhow!("{:?}", e))?;
+    let meta_values = MetaValues::from_slice_metadata(&meta).map_err(|e| anyhow!("{:?}", e))?;
 
     verify_filename(&meta_values, &qr_path.file_name)?;
     Ok(())

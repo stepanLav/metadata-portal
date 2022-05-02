@@ -1,14 +1,25 @@
 mod export;
+mod generate;
+mod github;
 mod metadata;
-mod qr_file;
+pub mod source;
+mod wasm;
 
 use crate::config::AppConfig;
 use crate::lib::read::{metadata_qr_in_dir, specs_qr_in_dir};
+use anyhow::{anyhow, bail, ensure};
+use definitions::metadata::{convert_wasm_into_metadata, MetaValues};
+use log::info;
+use octocrab::{models, params};
 
+use std::path::Path;
+
+use crate::updater::generate::{generate_metadata_qr, generate_spec_qr};
+use crate::updater::github::fetch_release_runtimes;
 use crate::updater::metadata::fetch_chain_info;
-use crate::updater::qr_file::{generate_metadata_qr, generate_spec_qr};
+use crate::updater::wasm::WasmRuntime;
 
-pub fn update(config: AppConfig) -> anyhow::Result<()> {
+pub fn update_from_node(config: AppConfig) -> anyhow::Result<()> {
     let metadata_qrs = metadata_qr_in_dir(&config.qr_dir)?;
     let specs_qrs = specs_qr_in_dir(&config.qr_dir)?;
 
@@ -34,5 +45,28 @@ pub fn update(config: AppConfig) -> anyhow::Result<()> {
     }
 
     println!("Done!");
+    Ok(())
+}
+
+#[tokio::main]
+pub async fn update_from_github(config: AppConfig) -> anyhow::Result<()> {
+    let metadata_qrs = metadata_qr_in_dir(&config.qr_dir)?;
+    let runtimes = fetch_release_runtimes().await?;
+    for chain in config.chains {
+        if !runtimes.contains_key(&chain.name) {
+            info!("no releases for {} found", chain.name);
+            continue;
+        }
+        let wasm = runtimes.get(&chain.name).unwrap();
+
+        match metadata_qrs.get(&chain.name) {
+            Some((_, version)) if *version >= wasm.version => (),
+            _ => {
+                // generate_metadata_qr(&meta_specs, &config.qr_dir)?;
+                // is_changed = true;
+            }
+        };
+    }
+
     Ok(())
 }
