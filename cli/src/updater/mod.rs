@@ -6,18 +6,20 @@ pub mod source;
 mod wasm;
 
 use crate::config::AppConfig;
-use crate::lib::read::{metadata_qr_in_dir, specs_qr_in_dir};
+use crate::lib::read::{hex_to_bytes, metadata_qr_in_dir, specs_qr_in_dir};
 use anyhow::{anyhow, bail, ensure};
 use definitions::metadata::{convert_wasm_into_metadata, MetaValues};
 use log::info;
 use octocrab::{models, params};
 
+use crate::updater::export::MetaSpecs;
+use definitions::network_specs::NetworkSpecsToSend;
 use std::path::Path;
 
 use crate::updater::generate::{generate_metadata_qr, generate_spec_qr};
 use crate::updater::github::fetch_release_runtimes;
 use crate::updater::metadata::fetch_chain_info;
-use crate::updater::wasm::WasmRuntime;
+use crate::updater::wasm::meta_values_from_wasm;
 
 pub fn update_from_node(config: AppConfig) -> anyhow::Result<()> {
     let metadata_qrs = metadata_qr_in_dir(&config.qr_dir)?;
@@ -33,7 +35,11 @@ pub fn update_from_node(config: AppConfig) -> anyhow::Result<()> {
         match metadata_qrs.get(chain.name.as_str()) {
             Some((_, version)) if *version >= meta_specs.meta_values.version => (),
             _ => {
-                generate_metadata_qr(&meta_specs, &config.qr_dir)?;
+                generate_metadata_qr(
+                    &meta_specs.meta_values,
+                    meta_specs.specs.genesis_hash,
+                    &config.qr_dir,
+                )?;
                 is_changed = true;
             }
         };
@@ -59,14 +65,19 @@ pub async fn update_from_github(config: AppConfig) -> anyhow::Result<()> {
         }
         let wasm = runtimes.get(&chain.name).unwrap();
 
+        let genesis_hash = chain.genesis_hash.expect(&format!(
+            "cannot find genesis_hash for {} in config.toml",
+            chain.name
+        ));
+        let genesis_hash = hex_to_bytes(&genesis_hash)?.try_into().unwrap();
+
         match metadata_qrs.get(&chain.name) {
             Some((_, version)) if *version >= wasm.version => (),
             _ => {
-                // generate_metadata_qr(&meta_specs, &config.qr_dir)?;
-                // is_changed = true;
+                let meta_values = meta_values_from_wasm(wasm.to_owned()).await?;
+                generate_metadata_qr(&meta_values, genesis_hash, &config.qr_dir)?;
             }
         };
     }
-
     Ok(())
 }

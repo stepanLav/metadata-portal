@@ -1,20 +1,22 @@
 use crate::lib::path::{ContentType, QrFileName};
 use crate::updater::export::MetaSpecs;
+use definitions::metadata::MetaValues;
 use definitions::qr_transfers::{ContentAddSpecs, ContentLoadMeta};
 use generate_message::make_message::make_message;
 use generate_message::parser::{Crypto, Goal, Make, Msg};
 use std::path::{Path, PathBuf};
+use definitions::error_active::MismatchActive::Metadata;
 
 pub(crate) fn generate_metadata_qr(
-    meta_specs: &MetaSpecs,
+    meta_values: &MetaValues,
+    genesis_hash: [u8; 32],
     target_dir: &Path,
 ) -> anyhow::Result<PathBuf> {
-    let content =
-        ContentLoadMeta::generate(&meta_specs.meta_values.meta, &meta_specs.specs.genesis_hash);
+    let content = ContentLoadMeta::generate(&meta_values.meta, &genesis_hash);
 
-    let file_name = QrFileName::new(
-        &meta_specs.meta_values.name.to_lowercase(),
-        ContentType::Metadata(meta_specs.meta_values.version),
+    let file_name = QrFileName<Metadata>::new(
+        &meta_values.name.to_lowercase(),
+        ContentType::Metadata(meta_values.version),
         false,
     )
     .to_string();

@@ -1,6 +1,10 @@
-use anyhow::anyhow;
+use anyhow::{anyhow, ensure};
+use definitions::metadata::MetaValues;
+use log::info;
 use octocrab::models::repos::Asset;
 use reqwest::Url;
+use std::path::Path;
+use std::str::Bytes;
 
 #[derive(Debug, PartialEq, Clone, Hash, Eq)]
 pub struct WasmRuntime {
@@ -37,14 +41,20 @@ impl TryFrom<Asset> for WasmRuntime {
     }
 }
 
-// fn meta_specs_from_wasm() -> anyhow::Result<()> {
-//     info!("downloading {}", wasm.chain);
-//     let resp = reqwest::get(asset.browser_download_url).await?;
-//     ensure!(resp.status().is_success());
-//     let body = resp.bytes().await?;
-//
-//     let filename = format!("/tmp/{}", wasm.chain);
-//     std::fs::write(&Path::new(&filename), &body)?;
-//     let meta = MetaValues::from_wasm_file(&filename)
-//         .map_err(|e| anyhow!("error converting wasm to metadata"))?;
-// }
+pub async fn meta_values_from_wasm(wasm: WasmRuntime) -> anyhow::Result<MetaValues> {
+    info!("downloading {}", &wasm.chain);
+    let response = reqwest::get(wasm.download_url.clone()).await?;
+    ensure!(
+        response.status().is_success(),
+        "failed to download {}: {}",
+        wasm.download_url,
+        response.status()
+    );
+    let wasm_bytes = response.bytes().await?;
+
+    let filename = format!("/tmp/{}", wasm.chain);
+    std::fs::write(&Path::new(&filename), wasm_bytes)?;
+    let meta = MetaValues::from_wasm_file(&filename)
+        .map_err(|e| anyhow!("error converting wasm to metadata"))?;
+    Ok(meta)
+}

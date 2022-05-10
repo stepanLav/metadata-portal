@@ -5,7 +5,7 @@ use std::fmt::{Debug, Display, Formatter};
 use std::path::PathBuf;
 
 #[derive(Debug, PartialEq, Clone, Hash, Eq)]
-pub struct QrPath<T: QrType> {
+struct QrPath<T: QrType> {
     pub dir: PathBuf,
     pub file_name: QrFileName<T>,
 }
@@ -44,7 +44,7 @@ struct Metadata {
 #[derive(Debug, PartialEq, Clone, Hash, Eq)]
 struct Specs {}
 
-pub trait QrType: TryFrom<String> + Display {}
+trait QrType: TryFrom<String> + Display {}
 
 impl QrType for Metadata {}
 impl QrType for Specs {}
@@ -87,7 +87,7 @@ impl TryFrom<String> for Specs {
 }
 
 #[derive(Debug, PartialEq, Clone, Hash, Eq)]
-pub(crate) struct QrFileName<T: QrType> {
+struct QrFileName<T: QrType> {
     pub chain: String,
     pub is_signed: bool,
     pub content_type: T,
