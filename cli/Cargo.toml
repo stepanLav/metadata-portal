@@ -28,7 +28,7 @@ generate_message = {git = "https://github.com/paritytech/parity-signer"}
 transaction_parsing = {git = "https://github.com/paritytech/parity-signer"}
 constants = {git = "https://github.com/paritytech/parity-signer"}
 parity-scale-codec = "2.2.0"
-image = "0.23.14"
+image = "0.24.2"
 quircs = "0.10.0"
 hex = "0.4.3"
 indicatif = "0.16.2"
