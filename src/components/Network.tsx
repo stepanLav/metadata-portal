@@ -48,7 +48,7 @@ export const Network = ({ spec }: { spec: ChainSpec }) => {
       <div className="hidden xl:flex items-center justify-between mb-10">
         <div className="flex items-center space-x-2 text-[40px] leading-none unbounded">
           <img
-            src={icon(spec.title)}
+            src={spec.icon}
             className="w-14 h-14 rounded-full bg-neutral-200"
           />
           <span>{capitalizeFirstLetter(spec.title)}</span>
