@@ -10,11 +10,6 @@ import { NetworkAndPortalSelectMobile } from "./NetworkAndPortalSelectMobile";
 import { NetworkSelect } from "./NetworkSelect";
 import { PortalSelect } from "./PortalSelect";
 
-export enum ChainsMode {
-  Dev,
-  Prod,
-}
-
 export default function App() {
   const [chains, setChains] = useState({} as Chains);
   const [portals, setPortals] = useState({} as Portals);
