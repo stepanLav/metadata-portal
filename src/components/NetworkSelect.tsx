@@ -1,5 +1,4 @@
 import { Listbox } from "@headlessui/react";
-import { icon } from "../icons";
 import { Chains } from "../scheme";
 import { capitalizeFirstLetter, cn } from "../utils";
 

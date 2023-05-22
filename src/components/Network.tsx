@@ -7,7 +7,6 @@ import Hash from "./Hash";
 import { Hr } from "./Hr";
 import { Links } from "./Links";
 import { Row } from "./Row";
-import { icon } from "../icons";
 
 type LabeledQr = {
   qr: QrInfo;

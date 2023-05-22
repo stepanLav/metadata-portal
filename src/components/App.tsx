@@ -10,22 +10,16 @@ import { NetworkAndPortalSelectMobile } from "./NetworkAndPortalSelectMobile";
 import { NetworkSelect } from "./NetworkSelect";
 import { PortalSelect } from "./PortalSelect";
 
-interface Props {
-  mode: ChainsMode;
-}
-
 export enum ChainsMode {
   Dev,
   Prod,
 }
 
-export default function App({ mode }: Props) {
+export default function App() {
   const [chains, setChains] = useState({} as Chains);
   const [portals, setPortals] = useState({} as Portals);
   const [currentChain, setCurrentChain] = useState<string>("");
   const spec = chains[currentChain];
-  const dataFileName =
-    mode === ChainsMode.Dev ? "../data_dev.json" : "data.json";
 
   useEffect(() => {
     fetch("data.json")
