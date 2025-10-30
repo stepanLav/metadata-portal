@@ -122,22 +122,25 @@ pub(crate) async fn update_from_node_async(
     signing_key: String,
 ) -> anyhow::Result<()> {
     info!("🚀 Starting parallel chain updates with optimized async processing");
-    
+
     let metadata_qrs = metadata_files(&config.qr_dir)?;
     let specs_qrs = spec_files(&config.qr_dir)?;
-    
+
     // Limit concurrent connections to avoid overwhelming network/CPU
     // With 10 concurrent chains, 80 chains should complete in ~8 batches
     let semaphore = Arc::new(Semaphore::new(10));
     let fetcher = Arc::new(AsyncRpcFetcher);
     let qr_dir = Arc::new(config.qr_dir.clone());
     let signing_key = Arc::new(signing_key);
-    
+
     let chains: Vec<_> = config.chains.into_iter().collect();
     let total_chains = chains.len();
-    
-    info!("📊 Processing {} chains with max 10 concurrent connections", total_chains);
-    
+
+    info!(
+        "📊 Processing {} chains with max 10 concurrent connections",
+        total_chains
+    );
+
     // Process chains concurrently
     let results: Vec<_> = stream::iter(chains)
         .map(|chain| {
@@ -147,16 +150,16 @@ pub(crate) async fn update_from_node_async(
             let signing_key = Arc::clone(&signing_key);
             let metadata_qrs = metadata_qrs.clone();
             let specs_qrs = specs_qrs.clone();
-            
+
             async move {
                 // Acquire semaphore permit (limits concurrency)
                 let _permit = semaphore.acquire().await.unwrap();
-                
+
                 info!("🔍 Processing chain: {}", chain.name);
-                
+
                 let encryption = get_crypto(&chain);
                 let mut chain_changed = false;
-                
+
                 // Process specs if missing
                 if !specs_qrs.contains_key(chain.name.as_str()) {
                     match fetcher.fetch_specs(&chain).await {
@@ -183,12 +186,12 @@ pub(crate) async fn update_from_node_async(
                         }
                     }
                 }
-                
+
                 // Process metadata
                 match fetcher.fetch_metadata(&chain).await {
                     Ok(fetched_meta) => {
                         let version = fetched_meta.meta_values.version;
-                        
+
                         // Skip if already have QR for the same version
                         if let Some(map) = metadata_qrs.get(&chain.name) {
                             if map.contains_key(&version) {
@@ -196,7 +199,7 @@ pub(crate) async fn update_from_node_async(
                                 return (chain.name.clone(), chain_changed, false);
                             }
                         }
-                        
+
                         if chain.verifier == "parity" {
                             if let Err(e) = download_metadata_qr(
                                 "https://metadata.parity.io/qr",
@@ -242,12 +245,12 @@ pub(crate) async fn update_from_node_async(
         .buffer_unordered(10) // Process up to 10 chains concurrently
         .collect()
         .await;
-    
+
     // Aggregate results
     let mut is_changed = false;
     let mut error_count = 0;
     let mut success_count = 0;
-    
+
     for (chain_name, changed, has_error) in results {
         if changed {
             is_changed = true;
@@ -259,10 +262,12 @@ pub(crate) async fn update_from_node_async(
             success_count += 1;
         }
     }
-    
-    info!("📈 Summary: {}/{} chains processed successfully, {} errors", 
-          success_count, total_chains, error_count);
-    
+
+    info!(
+        "📈 Summary: {}/{} chains processed successfully, {} errors",
+        success_count, total_chains, error_count
+    );
+
     if error_count > 0 {
         warn!("⚠️ Some chain data wasn't read. Please check the log!");
         exit(12);
@@ -284,33 +289,39 @@ pub(crate) async fn update_from_github(
     signing_key: String,
 ) -> anyhow::Result<()> {
     info!("🚀 Starting parallel GitHub release updates");
-    
+
     let metadata_qrs = metadata_files(&config.qr_dir)?;
     let qr_dir = Arc::new(config.qr_dir.clone());
     let signing_key = Arc::new(signing_key);
-    
+
     // Limit concurrent GitHub API calls to avoid rate limiting
     let semaphore = Arc::new(Semaphore::new(5));
-    
+
     let chains: Vec<_> = config.chains.into_iter().collect();
     let total_chains = chains.len();
-    
-    info!("📊 Checking {} chains for GitHub releases (max 5 concurrent)", total_chains);
-    
+
+    info!(
+        "📊 Checking {} chains for GitHub releases (max 5 concurrent)",
+        total_chains
+    );
+
     let results: Vec<_> = stream::iter(chains)
         .map(|chain| {
             let semaphore = Arc::clone(&semaphore);
             let qr_dir = Arc::clone(&qr_dir);
             let signing_key = Arc::clone(&signing_key);
             let metadata_qrs = metadata_qrs.clone();
-            
+
             async move {
                 let _permit = semaphore.acquire().await.unwrap();
-                
+
                 info!("🔍 Checking for updates for {}", chain.name);
-                
+
                 if chain.github_release.is_none() {
-                    info!("↪️ No GitHub releases configured for {}, skipping", chain.name);
+                    info!(
+                        "↪️ No GitHub releases configured for {}, skipping",
+                        chain.name
+                    );
                     return Ok::<_, anyhow::Error>(false);
                 }
 
@@ -326,18 +337,20 @@ pub(crate) async fn update_from_github(
                         return Ok(false);
                     }
                 };
-                
+
                 info!("📅 Found version {} for {}", wasm.version, chain.name);
                 let genesis_hash = H256::from_str(&github_repo.genesis_hash).unwrap();
 
                 // Skip if already have QR for the same version
                 if let Some(map) = metadata_qrs.get(&chain.name) {
-                    if map.contains_key(&wasm.version) || map.keys().min().unwrap_or(&0) > &wasm.version {
+                    if map.contains_key(&wasm.version)
+                        || map.keys().min().unwrap_or(&0) > &wasm.version
+                    {
                         info!("✓ {} is up to date!", chain.name);
                         return Ok(false);
                     }
                 }
-                
+
                 let wasm_bytes = match download_wasm(wasm.to_owned()).await {
                     Ok(bytes) => bytes,
                     Err(e) => {
@@ -345,16 +358,19 @@ pub(crate) async fn update_from_github(
                         return Ok(false);
                     }
                 };
-                
+
                 let meta_hash = blake2b(32, &[], &wasm_bytes).as_bytes().to_vec();
                 let meta_values = match meta_values_from_wasm_bytes(&wasm_bytes) {
                     Ok(mv) => mv,
                     Err(e) => {
-                        warn!("Failed to extract metadata from wasm for {}: {}", chain.name, e);
+                        warn!(
+                            "Failed to extract metadata from wasm for {}: {}",
+                            chain.name, e
+                        );
                         return Ok(false);
                     }
                 };
-                
+
                 let encryption = get_crypto(&chain);
                 let path = match generate_metadata_qr(
                     &meta_values,
@@ -370,16 +386,16 @@ pub(crate) async fn update_from_github(
                         return Ok(false);
                     }
                 };
-                
+
                 let source = Source::Wasm {
                     github_repo: format!("{}/{}", github_repo.owner, github_repo.repo),
                     hash: format!("0x{}", hex::encode(meta_hash)),
                 };
-                
+
                 if let Err(e) = save_source_info(&path, &source) {
                     warn!("Failed to save source info for {}: {}", chain.name, e);
                 }
-                
+
                 info!("✅ Successfully updated {} from GitHub release", chain.name);
                 Ok(true)
             }
@@ -387,19 +403,19 @@ pub(crate) async fn update_from_github(
         .buffer_unordered(5) // Process up to 5 chains concurrently
         .collect()
         .await;
-    
+
     let mut update_count = 0;
     for result in results {
         if let Ok(true) = result {
             update_count += 1;
         }
     }
-    
+
     if update_count > 0 {
         info!("✨ Updated {} chains from GitHub releases", update_count);
     } else {
         info!("🎉 All chains are up to date!");
     }
-    
+
     Ok(())
 }

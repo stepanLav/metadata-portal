@@ -72,11 +72,7 @@ fn main() {
             }
             UpdateSource::Node => {
                 if use_async {
-                    update_from_node_async(
-                        config,
-                        update_opts.sign,
-                        update_opts.signing_key,
-                    )
+                    update_from_node_async(config, update_opts.sign, update_opts.signing_key)
                 } else {
                     update_from_node(
                         config,

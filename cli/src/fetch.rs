@@ -114,7 +114,10 @@ where
                 Ok(res) => return Ok(res),
                 Err(e) => {
                     if attempt < 3 {
-                        warn!("Attempt {}/3 failed for {}: {:?}, retrying...", attempt, url, e);
+                        warn!(
+                            "Attempt {}/3 failed for {}: {:?}, retrying...",
+                            attempt, url, e
+                        );
                         // Exponential backoff: 2s, 4s
                         tokio::time::sleep(Duration::from_secs(2_u64.pow(attempt))).await;
                     } else {
@@ -137,21 +140,24 @@ impl AsyncFetcher for AsyncRpcFetcher {
             let chain = chain_clone.clone();
             async move {
                 tokio::task::spawn_blocking(move || {
-                    let optional_token_override = chain.token_decimals.zip(chain.token_unit.as_ref()).map(
-                        |(token_decimals, token_unit)| Token {
+                    let optional_token_override = chain
+                        .token_decimals
+                        .zip(chain.token_unit.as_ref())
+                        .map(|(token_decimals, token_unit)| Token {
                             decimals: token_decimals,
                             unit: token_unit.to_string(),
-                        },
-                    );
+                        });
                     specs_agnostic(&url, get_crypto(&chain), optional_token_override, None)
                 })
                 .await
-                .map_err(|e| generate_message::Error::SpecsTransfer(format!("Task join error: {}", e)))?
+                .map_err(|e| {
+                    generate_message::Error::SpecsTransfer(format!("Task join error: {}", e))
+                })?
             }
         })
         .await
         .map_err(|e| anyhow!("{:?}", e))?;
-        
+
         if specs.name.to_lowercase() != chain.name {
             bail!(
                 "Network name mismatch. Expected {}, got {}. Please fix it in `config.toml`",
@@ -164,16 +170,16 @@ impl AsyncFetcher for AsyncRpcFetcher {
 
     async fn fetch_metadata(&self, chain: &Chain) -> Result<MetaFetched> {
         let chain_clone = chain.clone();
-        let meta = call_urls_async(&chain.rpc_endpoints, move |url| {
-            async move {
-                tokio::task::spawn_blocking(move || meta_fetch(&url))
-                    .await
-                    .map_err(|e| generate_message::Error::MetaFetch(format!("Task join error: {}", e)))?
-            }
+        let meta = call_urls_async(&chain.rpc_endpoints, move |url| async move {
+            tokio::task::spawn_blocking(move || meta_fetch(&url))
+                .await
+                .map_err(|e| {
+                    generate_message::Error::MetaFetch(format!("Task join error: {}", e))
+                })?
         })
         .await
         .map_err(|e| anyhow!("{:?}", e))?;
-        
+
         if meta.meta_values.name.to_lowercase() != chain.name {
             bail!(
                 "Network name mismatch. Expected {}, got {}. Please fix it in `config.toml`",
@@ -195,16 +201,19 @@ impl AsyncFetcher for AsyncConfigRpcFetcher {
             let chain = chain_clone.clone();
             async move {
                 tokio::task::spawn_blocking(move || {
-                    let optional_token_override = chain.token_decimals.zip(chain.token_unit.as_ref()).map(
-                        |(token_decimals, token_unit)| Token {
+                    let optional_token_override = chain
+                        .token_decimals
+                        .zip(chain.token_unit.as_ref())
+                        .map(|(token_decimals, token_unit)| Token {
                             decimals: token_decimals,
                             unit: token_unit.to_string(),
-                        },
-                    );
+                        });
                     specs_agnostic(&url, get_crypto(&chain), optional_token_override, None)
                 })
                 .await
-                .map_err(|e| generate_message::Error::SpecsTransfer(format!("Task join error: {}", e)))?
+                .map_err(|e| {
+                    generate_message::Error::SpecsTransfer(format!("Task join error: {}", e))
+                })?
             }
         })
         .await
