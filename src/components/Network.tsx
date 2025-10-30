@@ -34,7 +34,7 @@ export const Network = ({ spec }: { spec: ChainSpec }) => {
       ({
         qr: qr.file,
         label: `${capitalizeFirstLetter(qr.status.toString())} #${qr.version}`,
-      } as LabeledQr)
+      }) as LabeledQr,
   );
 
   function updateTab(v: number) {
@@ -102,7 +102,7 @@ export const Network = ({ spec }: { spec: ChainSpec }) => {
                     <button
                       className={cn(
                         "flex-1 p-3 rounded-full focus:outline-none",
-                        selected && "text-white"
+                        selected && "text-white",
                       )}
                       style={{ backgroundColor: selected ? spec.color : "" }}
                     >
@@ -169,7 +169,9 @@ export const Network = ({ spec }: { spec: ChainSpec }) => {
                                 className={cn(
                                   "flex items-center space-x-2 p-2 rounded-md hover:bg-neutral-100 transition-colors",
                                   selected && "bg-neutral-100",
-                                  selected ? "cursor-default" : "cursor-pointer"
+                                  selected
+                                    ? "cursor-default"
+                                    : "cursor-pointer",
                                 )}
                               >
                                 <span>{qr.label}</span>
